@@ -3,43 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lane Card Battler</title>
+    <title>Card Wars: Full Mini-Game</title>
     <style>
+        :root {
+            --bg-color: #1e272e;
+            --panel-bg: #2f3640;
+            --accent: #00a8ff;
+            --danger: #e84118;
+            --success: #4cd137;
+            --card-bg: #f5f6fa;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #2c3e50;
+            background-color: var(--bg-color);
             color: white;
             margin: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            user-select: none;
         }
 
+        /* --- UI OVERLAYS --- */
+        #game-over {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        #game-over button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* --- HEADER & STATS --- */
         header {
-            text-align: center;
-            padding: 10px;
-            background-color: #1a252f;
-            border-bottom: 2px solid #34495e;
-        }
-
-        .stats {
             display: flex;
             justify-content: space-between;
-            padding: 0 50px;
+            align-items: center;
+            padding: 10px 30px;
+            background-color: var(--panel-bg);
+            border-bottom: 2px solid #353b48;
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .stat-bar {
             font-size: 1.2rem;
             font-weight: bold;
         }
+        .hp-text { color: var(--danger); }
+        .mana-text { color: var(--accent); }
 
-        .health { color: #e74c3c; }
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
 
+        #end-turn-btn {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #end-turn-btn:hover { transform: scale(1.05); }
+        #end-turn-btn:active { transform: scale(0.95); }
+        #end-turn-btn:disabled { background-color: #7f8fa6; cursor: not-allowed; }
+
+        /* --- GAME BOARD --- */
         .game-board {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 10px;
             gap: 20px;
         }
 
@@ -48,196 +106,481 @@
             gap: 15px;
         }
 
-        /* The 4 Lanes for each player */
         .lane {
             width: 120px;
             height: 160px;
-            background-color: rgba(0, 0, 0, 0.3);
-            border: 2px dashed #7f8c8d;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 2px dashed #718093;
             border-radius: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: background-color 0.2s;
+            position: relative;
         }
 
-        .lane.drag-over {
-            background-color: rgba(46, 204, 113, 0.3);
-            border-color: #2ecc71;
+        .player-lane.drag-over {
+            background-color: rgba(76, 209, 55, 0.2);
+            border-color: var(--success);
         }
 
-        /* Player Hand Area */
-        .hand {
-            height: 200px;
-            background-color: #1a252f;
-            border-top: 2px solid #34495e;
+        /* --- HAND --- */
+        .hand-container {
+            height: 180px;
+            background-color: var(--panel-bg);
+            border-top: 2px solid #353b48;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 10px;
-            padding: 20px;
+            padding: 10px;
+            overflow-x: auto;
         }
 
-        /* Card Styling */
+        /* --- CARDS --- */
         .card {
             width: 110px;
             height: 150px;
-            background-color: #ecf0f1;
-            color: #2c3e50;
+            background-color: var(--card-bg);
+            color: #2f3640;
             border-radius: 8px;
-            border: 3px solid #bdc3c7;
-            padding: 8px;
+            border: 3px solid #718093;
+            padding: 6px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            cursor: grab;
             box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-            user-select: none;
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s;
+            background-image: linear-gradient(135deg, #f5f6fa 0%, #dcdde1 100%);
         }
 
-        .card:active {
-            cursor: grabbing;
+        .card.playable { cursor: grab; border-color: var(--success); }
+        .card.playable:active { cursor: grabbing; }
+        .card.unplayable { cursor: not-allowed; opacity: 0.7; }
+
+        .card-cost {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            background-color: var(--accent);
+            color: white;
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border: 2px solid white;
         }
 
         .card-title {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: bold;
             text-align: center;
-            border-bottom: 1px solid #bdc3c7;
-            padding-bottom: 4px;
+            border-bottom: 1px solid #7f8fa6;
+            padding-bottom: 2px;
+            margin-top: 5px;
+        }
+
+        .card-art {
+            text-align: center;
+            font-size: 2.5rem;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .card-stats {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
+            background-color: rgba(0,0,0,0.1);
+            padding: 4px;
+            border-radius: 4px;
         }
 
-        .atk { color: #c0392b; }
-        .def { color: #2980b9; }
+        .atk { color: #c23616; }
+        .hp { color: #27ae60; }
 
-        /* Opponent side styling */
-        .opponent-lane {
-            border-color: #c0392b;
+        /* Animations */
+        @keyframes attackUp {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-30px); }
+            100% { transform: translateY(0); }
         }
+        @keyframes attackDown {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(30px); }
+            100% { transform: translateY(0); }
+        }
+        @keyframes takeDamage {
+            0% { background-color: var(--danger); }
+            100% { background-color: var(--card-bg); }
+        }
+        
+        .anim-attack-up { animation: attackUp 0.3s ease; }
+        .anim-attack-down { animation: attackDown 0.3s ease; }
+        .anim-damage { animation: takeDamage 0.5s ease; }
 
     </style>
 </head>
 <body>
 
+    <div id="game-over">
+        <div id="game-over-text">You Win!</div>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+
     <header>
-        <h2>Card Battler Framework</h2>
-        <div class="stats">
-            <div>Opponent HP: <span class="health" id="opp-hp">25</span></div>
-            <div>Player HP: <span class="health" id="player-hp">25</span></div>
+        <div class="player-info">
+            <div class="stat-bar">Opponent HP: <span class="hp-text" id="opp-hp">30</span></div>
+            <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="opp-mana">1/1</span> | Deck: <span id="opp-deck">15</span></div>
+        </div>
+
+        <div class="controls">
+            <div id="turn-indicator" style="font-weight:bold; font-size: 1.2rem;">Your Turn</div>
+            <button id="end-turn-btn">End Turn</button>
+        </div>
+
+        <div class="player-info" style="text-align: right;">
+            <div class="stat-bar">Player HP: <span class="hp-text" id="player-hp">30</span></div>
+            <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="player-mana">1/1</span> | Deck: <span id="player-deck">15</span></div>
         </div>
     </header>
 
     <div class="game-board">
-        <div class="row" id="opponent-board">
-            <div class="lane opponent-lane"></div>
-            <div class="lane opponent-lane"></div>
-            <div class="lane opponent-lane"></div>
-            <div class="lane opponent-lane"></div>
+        <div class="row" id="opp-board">
+            <div class="lane opp-lane" data-index="0"></div>
+            <div class="lane opp-lane" data-index="1"></div>
+            <div class="lane opp-lane" data-index="2"></div>
+            <div class="lane opp-lane" data-index="3"></div>
         </div>
 
-        <hr style="width: 80%; border-color: #7f8c8d; opacity: 0.3;">
+        <hr style="width: 90%; border-color: #718093; opacity: 0.3; margin: 0;">
 
         <div class="row" id="player-board">
-            <div class="lane player-lane"></div>
-            <div class="lane player-lane"></div>
-            <div class="lane player-lane"></div>
-            <div class="lane player-lane"></div>
+            <div class="lane player-lane" data-index="0"></div>
+            <div class="lane player-lane" data-index="1"></div>
+            <div class="lane player-lane" data-index="2"></div>
+            <div class="lane player-lane" data-index="3"></div>
         </div>
     </div>
 
-    <div class="hand" id="player-hand">
-        </div>
+    <div class="hand-container" id="player-hand"></div>
 
     <script>
-        // Sample card data
-        const cardDatabase = [
-            { id: 'c1', name: 'Corn Knight', atk: 3, def: 2 },
-            { id: 'c2', name: 'Pig', atk: 1, def: 4 },
-            { id: 'c3', name: 'Wandering Bald Man', atk: 2, def: 2 },
-            { id: 'c4', name: 'Cool Dog', atk: 4, def: 1 },
-            { id: 'c5', name: 'Cave Troll', atk: 5, def: 5 }
+        // --- DATABASE ---
+        const MASTER_CARDS = [
+            { id: 1, name: 'Peasant', cost: 1, atk: 1, hp: 2, art: '🧑‍🌾' },
+            { id: 2, name: 'Stray Dog', cost: 1, atk: 2, hp: 1, art: '🐕' },
+            { id: 3, name: 'Lil Goblin', cost: 1, atk: 1, hp: 1, art: '👺' },
+            { id: 4, name: 'Militia', cost: 2, atk: 2, hp: 3, art: '💂' },
+            { id: 5, name: 'Wild Boar', cost: 2, atk: 3, hp: 2, art: '🐗' },
+            { id: 6, name: 'Archer', cost: 2, atk: 4, hp: 1, art: '🏹' },
+            { id: 7, name: 'Shield Bearer', cost: 3, atk: 1, hp: 6, art: '🛡️' },
+            { id: 8, name: 'Knight', cost: 3, atk: 3, hp: 4, art: '🗡️' },
+            { id: 9, name: 'Wolf Pack', cost: 3, atk: 4, hp: 3, art: '🐺' },
+            { id: 10, name: 'Corn Brute', cost: 4, atk: 4, hp: 5, art: '🌽' },
+            { id: 11, name: 'Troll', cost: 4, atk: 5, hp: 4, art: '👹' },
+            { id: 12, name: 'Assassin', cost: 4, atk: 6, hp: 2, art: '🥷' },
+            { id: 13, name: 'Golem', cost: 5, atk: 4, hp: 7, art: '🪨' },
+            { id: 14, name: 'Wizard', cost: 5, atk: 6, hp: 4, art: '🧙‍♂️' },
+            { id: 15, name: 'Grizzly', cost: 5, atk: 5, hp: 5, art: '🐻' },
+            { id: 16, name: 'Dragon Whelp', cost: 6, atk: 6, hp: 6, art: '🐉' },
+            { id: 17, name: 'Paladin', cost: 6, atk: 5, hp: 8, art: '✨' },
+            { id: 18, name: 'Behemoth', cost: 7, atk: 7, hp: 7, art: '🦍' },
+            { id: 19, name: 'Dark Lord', cost: 8, atk: 8, hp: 8, art: '🧛' },
+            { id: 20, name: 'Titan', cost: 10, atk: 10, hp: 10, art: '🌋' }
         ];
 
-        const handContainer = document.getElementById('player-hand');
-        const playerLanes = document.querySelectorAll('.player-lane');
+        // --- GAME STATE ---
+        let state = {
+            player: { hp: 30, mana: 1, maxMana: 1, deck: [], hand: [] },
+            opp: { hp: 30, mana: 1, maxMana: 1, deck: [], hand: [] },
+            turn: 'player', // 'player', 'combat', 'opp'
+            isGameOver: false
+        };
 
-        // Function to create a card element
-        function createCard(cardData) {
-            const card = document.createElement('div');
-            card.classList.add('card');
-            card.setAttribute('draggable', 'true');
-            card.id = cardData.id + '-' + Math.random().toString(36).substr(2, 5); // unique ID
+        const DOM = {
+            pHp: document.getElementById('player-hp'),
+            pMana: document.getElementById('player-mana'),
+            pDeck: document.getElementById('player-deck'),
+            oHp: document.getElementById('opp-hp'),
+            oMana: document.getElementById('opp-mana'),
+            oDeck: document.getElementById('opp-deck'),
+            pHand: document.getElementById('player-hand'),
+            endBtn: document.getElementById('end-turn-btn'),
+            turnInd: document.getElementById('turn-indicator'),
+            gameOver: document.getElementById('game-over'),
+            gameOverText: document.getElementById('game-over-text')
+        };
 
-            card.innerHTML = `
-                <div class="card-title">${cardData.name}</div>
-                <div style="text-align:center; font-size: 2rem;">⚔️</div>
+        // --- UTILS ---
+        function generateDeck() {
+            let deck = [];
+            for(let i=0; i<20; i++) {
+                // Bias towards lower cost cards
+                let pool = MASTER_CARDS.filter(c => c.cost <= (i < 10 ? 3 : (i < 15 ? 5 : 10)));
+                let card = Object.assign({}, pool[Math.floor(Math.random() * pool.length)]);
+                card.uid = Math.random().toString(36).substr(2, 9);
+                deck.push(card);
+            }
+            return deck.sort(() => Math.random() - 0.5);
+        }
+
+        function createCardDOM(card, isPlayer = true) {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.id = card.uid;
+            // Store stats in DOM for easy combat logic
+            el.dataset.atk = card.atk;
+            el.dataset.hp = card.hp;
+            el.dataset.cost = card.cost;
+            el.dataset.isPlayer = isPlayer;
+
+            el.innerHTML = `
+                <div class="card-cost">${card.cost}</div>
+                <div class="card-title">${card.name}</div>
+                <div class="card-art">${card.art}</div>
                 <div class="card-stats">
-                    <span class="atk">🗡️ ${cardData.atk}</span>
-                    <span class="def">🛡️ ${cardData.def}</span>
+                    <span class="atk">⚔️ <span class="atk-val">${card.atk}</span></span>
+                    <span class="hp">❤️ <span class="hp-val">${card.hp}</span></span>
                 </div>
             `;
 
-            // Drag Events
-            card.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', card.id);
-                setTimeout(() => card.style.opacity = '0.5', 0);
-            });
-
-            card.addEventListener('dragend', () => {
-                card.style.opacity = '1';
-            });
-
-            return card;
-        }
-
-        // Deal initial hand
-        function dealHand() {
-            for(let i = 0; i < 5; i++) {
-                const randomCard = cardDatabase[Math.floor(Math.random() * cardDatabase.length)];
-                handContainer.appendChild(createCard(randomCard));
+            if (isPlayer) {
+                el.setAttribute('draggable', 'true');
+                el.addEventListener('dragstart', (e) => {
+                    if(state.turn !== 'player' || card.cost > state.player.mana) {
+                        e.preventDefault(); return;
+                    }
+                    e.dataTransfer.setData('text/plain', el.id);
+                    setTimeout(() => el.style.opacity = '0.5', 0);
+                });
+                el.addEventListener('dragend', () => el.style.opacity = '1');
             }
+            return el;
         }
 
-        // Setup drop zones for player lanes
-        playerLanes.forEach(lane => {
-            lane.addEventListener('dragover', (e) => {
-                e.preventDefault(); // Allows dropping
-                // Only allow drop if lane is empty
-                if (lane.children.length === 0) {
-                    lane.classList.add('drag-over');
+        function updateUI() {
+            DOM.pHp.innerText = state.player.hp;
+            DOM.pMana.innerText = `${state.player.mana}/${state.player.maxMana}`;
+            DOM.pDeck.innerText = state.player.deck.length;
+            
+            DOM.oHp.innerText = state.opp.hp;
+            DOM.oMana.innerText = `${state.opp.mana}/${state.opp.maxMana}`;
+            DOM.oDeck.innerText = state.opp.deck.length;
+
+            // Highlight playable cards
+            Array.from(DOM.pHand.children).forEach(cardEl => {
+                if(parseInt(cardEl.dataset.cost) <= state.player.mana && state.turn === 'player') {
+                    cardEl.classList.add('playable');
+                    cardEl.classList.remove('unplayable');
+                } else {
+                    cardEl.classList.remove('playable');
+                    cardEl.classList.add('unplayable');
                 }
             });
 
-            lane.addEventListener('dragleave', () => {
-                lane.classList.remove('drag-over');
-            });
+            if(state.player.hp <= 0) endGame("Opponent Wins!");
+            if(state.opp.hp <= 0) endGame("You Win!");
+        }
 
+        // --- CORE MECHANICS ---
+        function drawCard(side) {
+            let s = state[side];
+            if(s.deck.length === 0) return;
+            let card = s.deck.pop();
+            s.hand.push(card);
+            
+            if(side === 'player') {
+                DOM.pHand.appendChild(createCardDOM(card, true));
+            }
+            updateUI();
+        }
+
+        function initGame() {
+            state.player.deck = generateDeck();
+            state.opp.deck = generateDeck();
+            for(let i=0; i<4; i++) {
+                drawCard('player');
+                drawCard('opp');
+            }
+            updateUI();
+        }
+
+        // --- DRAG & DROP LOGIC ---
+        document.querySelectorAll('.player-lane').forEach(lane => {
+            lane.addEventListener('dragover', (e) => {
+                if(lane.children.length === 0 && state.turn === 'player') {
+                    e.preventDefault();
+                    lane.classList.add('drag-over');
+                }
+            });
+            lane.addEventListener('dragleave', () => lane.classList.remove('drag-over'));
             lane.addEventListener('drop', (e) => {
                 e.preventDefault();
                 lane.classList.remove('drag-over');
                 
-                // Only accept card if the lane is empty
-                if (lane.children.length === 0) {
-                    const cardId = e.dataTransfer.getData('text/plain');
-                    const draggedCard = document.getElementById(cardId);
-                    if(draggedCard) {
-                        lane.appendChild(draggedCard);
-                        draggedCard.setAttribute('draggable', 'false'); // Lock card in place
-                        draggedCard.style.cursor = 'default';
+                const cardId = e.dataTransfer.getData('text/plain');
+                const cardEl = document.getElementById(cardId);
+                
+                if(cardEl && lane.children.length === 0) {
+                    let cost = parseInt(cardEl.dataset.cost);
+                    if(state.player.mana >= cost) {
+                        state.player.mana -= cost;
+                        lane.appendChild(cardEl);
+                        cardEl.setAttribute('draggable', 'false');
+                        cardEl.classList.remove('playable', 'unplayable');
+                        // Remove from hand array
+                        state.player.hand = state.player.hand.filter(c => c.uid !== cardId);
+                        updateUI();
                     }
                 }
             });
         });
 
-        // Initialize Game
-        dealHand();
+        // --- COMBAT & TURN LOGIC ---
+        DOM.endBtn.addEventListener('click', () => {
+            if(state.turn !== 'player') return;
+            state.turn = 'combat';
+            DOM.endBtn.disabled = true;
+            DOM.turnInd.innerText = "Combat Phase...";
+            runCombatSequence();
+        });
+
+        async function runCombatSequence() {
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+            
+            // 1. Player Attacks
+            for(let i=0; i<4; i++) {
+                let pLane = document.querySelector(`.player-lane[data-index="${i}"]`);
+                let oLane = document.querySelector(`.opp-lane[data-index="${i}"]`);
+                
+                if(pLane.children.length > 0) {
+                    let pCard = pLane.children[0];
+                    pCard.classList.add('anim-attack-up');
+                    await sleep(300);
+                    
+                    let atk = parseInt(pCard.dataset.atk);
+                    if(oLane.children.length > 0) {
+                        damageCard(oLane.children[0], atk);
+                    } else {
+                        state.opp.hp -= atk;
+                        updateUI();
+                    }
+                    pCard.classList.remove('anim-attack-up');
+                    await sleep(200);
+                }
+            }
+
+            // 2. Opponent Attacks
+            for(let i=0; i<4; i++) {
+                let pLane = document.querySelector(`.player-lane[data-index="${i}"]`);
+                let oLane = document.querySelector(`.opp-lane[data-index="${i}"]`);
+                
+                if(oLane.children.length > 0) {
+                    let oCard = oLane.children[0];
+                    oCard.classList.add('anim-attack-down');
+                    await sleep(300);
+                    
+                    let atk = parseInt(oCard.dataset.atk);
+                    if(pLane.children.length > 0) {
+                        damageCard(pLane.children[0], atk);
+                    } else {
+                        state.player.hp -= atk;
+                        updateUI();
+                    }
+                    oCard.classList.remove('anim-attack-down');
+                    await sleep(200);
+                }
+            }
+
+            if(!state.isGameOver) {
+                startOpponentTurn();
+            }
+        }
+
+        function damageCard(cardEl, amount) {
+            cardEl.classList.add('anim-damage');
+            setTimeout(() => cardEl.classList.remove('anim-damage'), 500);
+            
+            let hp = parseInt(cardEl.dataset.hp) - amount;
+            cardEl.dataset.hp = hp;
+            cardEl.querySelector('.hp-val').innerText = hp;
+            
+            if(hp <= 0) {
+                setTimeout(() => cardEl.remove(), 500);
+            }
+        }
+
+        // --- OPPONENT AI ---
+        async function startOpponentTurn() {
+            state.turn = 'opp';
+            DOM.turnInd.innerText = "Opponent Turn...";
+            
+            // Start of turn setup
+            if(state.opp.maxMana < 10) state.opp.maxMana++;
+            state.opp.mana = state.opp.maxMana;
+            drawCard('opp');
+            updateUI();
+
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+            await sleep(1000);
+
+            // AI Logic: Play affordable cards into empty lanes randomly
+            let emptyLanes = Array.from(document.querySelectorAll('.opp-lane'))
+                                  .filter(l => l.children.length === 0);
+            
+            // Sort hand by most expensive first (simple greedy AI)
+            state.opp.hand.sort((a,b) => b.cost - a.cost);
+
+            for (let i = state.opp.hand.length - 1; i >= 0; i--) {
+                let card = state.opp.hand[i];
+                if (card.cost <= state.opp.mana && emptyLanes.length > 0) {
+                    // Play card
+                    state.opp.mana -= card.cost;
+                    let targetLane = emptyLanes[Math.floor(Math.random() * emptyLanes.length)];
+                    
+                    let cardEl = createCardDOM(card, false);
+                    targetLane.appendChild(cardEl);
+                    
+                    // Remove from hand and available lanes
+                    state.opp.hand.splice(i, 1);
+                    emptyLanes = emptyLanes.filter(l => l !== targetLane);
+                    
+                    updateUI();
+                    await sleep(600);
+                }
+            }
+
+            if(!state.isGameOver) {
+                startPlayerTurn();
+            }
+        }
+
+        function startPlayerTurn() {
+            if(state.player.maxMana < 10) state.player.maxMana++;
+            state.player.mana = state.player.maxMana;
+            drawCard('player');
+            
+            state.turn = 'player';
+            DOM.turnInd.innerText = "Your Turn";
+            DOM.endBtn.disabled = false;
+            updateUI();
+        }
+
+        function endGame(msg) {
+            state.isGameOver = true;
+            DOM.gameOverText.innerText = msg;
+            DOM.gameOver.style.display = 'flex';
+        }
+
+        // Boot
+        initGame();
+
     </script>
 </body>
 </html>
