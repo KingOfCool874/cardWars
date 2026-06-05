@@ -3,20 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card Wars: Full Mini-Game</title>
+    <title>Card Wars: Legends</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lato:wght@400;700&display=swap');
+
         :root {
-            --bg-color: #1e272e;
-            --panel-bg: #2f3640;
-            --accent: #00a8ff;
-            --danger: #e84118;
-            --success: #4cd137;
-            --card-bg: #f5f6fa;
+            --bg-dark: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.8);
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --card-bg: #f8fafc;
+            --gold: #fbbf24;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Lato', sans-serif;
+            background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
             color: white;
             margin: 0;
             display: flex;
@@ -26,284 +29,254 @@
             user-select: none;
         }
 
-        /* --- UI OVERLAYS --- */
-        #game-over {
+        /* --- SCREENS --- */
+        #title-screen, #game-over {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.95);
+            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 100;
-            font-size: 3rem;
-            font-weight: bold;
+            z-index: 200;
+            backdrop-filter: blur(10px);
         }
-        #game-over button {
-            margin-top: 20px;
-            padding: 10px 20px;
+
+        #title-screen h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 5rem;
+            color: var(--gold);
+            margin: 0 0 10px 0;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--accent), #2563eb);
+            color: white;
+            border: none;
+            padding: 15px 40px;
             font-size: 1.5rem;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            margin-top: 20px;
         }
+
+        .primary-btn:hover { transform: scale(1.05); }
+        .primary-btn:active { transform: scale(0.95); }
+
+        #game-ui { display: none; flex-direction: column; height: 100%; }
 
         /* --- HEADER & STATS --- */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 30px;
-            background-color: var(--panel-bg);
-            border-bottom: 2px solid #353b48;
+            padding: 15px 40px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
         }
 
-        .player-info {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .stat-bar {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        .hp-text { color: var(--danger); }
+        .player-info { display: flex; flex-direction: column; gap: 5px; }
+        .stat-bar { font-size: 1.2rem; font-weight: bold; }
+        .hp-text { color: var(--danger); font-size: 1.4rem; }
         .mana-text { color: var(--accent); }
 
-        .controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
+        .controls { text-align: center; }
+        #turn-indicator { font-family: 'Cinzel', serif; font-size: 1.5rem; color: var(--gold); margin-bottom: 10px; }
+        
         #end-turn-btn {
             background-color: var(--success);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.1s;
+            color: white; border: none; padding: 10px 25px;
+            font-size: 1.1rem; font-weight: bold; border-radius: 6px;
+            cursor: pointer; transition: transform 0.1s;
         }
-        #end-turn-btn:hover { transform: scale(1.05); }
-        #end-turn-btn:active { transform: scale(0.95); }
-        #end-turn-btn:disabled { background-color: #7f8fa6; cursor: not-allowed; }
+        #end-turn-btn:disabled { background-color: #64748b; cursor: not-allowed; }
 
         /* --- GAME BOARD --- */
         .game-board {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            gap: 20px;
+            flex-grow: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; gap: 30px;
         }
 
-        .row {
-            display: flex;
-            gap: 15px;
-        }
+        .row { display: flex; gap: 20px; }
 
         .lane {
-            width: 120px;
-            height: 160px;
-            background-color: rgba(0, 0, 0, 0.2);
-            border: 2px dashed #718093;
-            border-radius: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+            width: 120px; height: 160px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            position: relative; transition: all 0.3s;
         }
 
-        .player-lane.drag-over {
-            background-color: rgba(76, 209, 55, 0.2);
-            border-color: var(--success);
-        }
+        .player-lane.drag-over { background-color: rgba(16, 185, 129, 0.2); border-color: var(--success); }
 
         /* --- HAND --- */
         .hand-container {
-            height: 180px;
-            background-color: var(--panel-bg);
-            border-top: 2px solid #353b48;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            overflow-x: auto;
+            height: 190px;
+            background: var(--panel-bg);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; justify-content: center; align-items: center;
+            gap: 15px; padding: 10px; overflow-x: auto;
         }
 
         /* --- CARDS --- */
         .card {
-            width: 110px;
-            height: 150px;
-            background-color: var(--card-bg);
-            color: #2f3640;
-            border-radius: 8px;
-            border: 3px solid #718093;
-            padding: 6px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-            position: relative;
-            transition: transform 0.2s, border-color 0.2s;
-            background-image: linear-gradient(135deg, #f5f6fa 0%, #dcdde1 100%);
+            width: 110px; height: 150px;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            color: #0f172a; border-radius: 8px;
+            border: 2px solid #cbd5e1; padding: 6px;
+            box-sizing: border-box; display: flex; flex-direction: column;
+            justify-content: space-between; position: relative;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            transition: transform 0.2s, filter 0.3s;
         }
 
-        .card.playable { cursor: grab; border-color: var(--success); }
+        .card.playable { cursor: grab; border-color: var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
         .card.playable:active { cursor: grabbing; }
-        .card.unplayable { cursor: not-allowed; opacity: 0.7; }
+        .card.unplayable { cursor: not-allowed; filter: brightness(0.6); }
+        
+        /* Exhaustion state */
+        .card.exhausted { filter: grayscale(100%) brightness(0.7); box-shadow: none; }
 
         .card-cost {
-            position: absolute;
-            top: -10px;
-            left: -10px;
-            background-color: var(--accent);
-            color: white;
-            width: 30px; height: 30px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            border: 2px solid white;
+            position: absolute; top: -12px; left: -12px;
+            background: var(--accent); color: white;
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
-        .card-title {
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-align: center;
-            border-bottom: 1px solid #7f8fa6;
-            padding-bottom: 2px;
-            margin-top: 5px;
-        }
-
-        .card-art {
-            text-align: center;
-            font-size: 2.5rem;
-            flex-grow: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .card-title { font-size: 0.75rem; font-weight: bold; text-align: center; border-bottom: 1px solid #94a3b8; padding-bottom: 2px; margin-top: 6px; }
+        .card-art { font-size: 2.5rem; text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+        
+        .card-desc { font-size: 0.55rem; text-align: center; color: #475569; height: 20px; overflow: hidden; line-height: 1; margin-bottom: 2px;}
 
         .card-stats {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            background-color: rgba(0,0,0,0.1);
-            padding: 4px;
-            border-radius: 4px;
+            display: flex; justify-content: space-between;
+            background: rgba(0,0,0,0.05); padding: 4px; border-radius: 4px; font-weight: bold; font-size: 0.9rem;
         }
 
-        .atk { color: #c23616; }
-        .hp { color: #27ae60; }
+        .atk { color: #b91c1c; }
+        .hp { color: #15803d; }
+
+        /* Ability Button */
+        .ability-btn {
+            position: absolute; top: -12px; right: -12px;
+            background: var(--gold); border: 2px solid white; border-radius: 50%;
+            width: 30px; height: 30px; cursor: pointer; font-size: 1rem;
+            display: none; justify-content: center; align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: transform 0.1s;
+        }
+        .ability-btn:hover { transform: scale(1.1); }
+        .ability-btn:disabled { filter: grayscale(100%); cursor: not-allowed; transform: none; }
+        
+        .lane .card .ability-btn.has-ability { display: flex; } /* Only show when on board */
 
         /* Animations */
-        @keyframes attackUp {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-30px); }
-            100% { transform: translateY(0); }
-        }
-        @keyframes attackDown {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(30px); }
-            100% { transform: translateY(0); }
-        }
-        @keyframes takeDamage {
-            0% { background-color: var(--danger); }
-            100% { background-color: var(--card-bg); }
-        }
+        @keyframes attackUp { 0% { transform: translateY(0); } 50% { transform: translateY(-30px); } 100% { transform: translateY(0); } }
+        @keyframes attackDown { 0% { transform: translateY(0); } 50% { transform: translateY(30px); } 100% { transform: translateY(0); } }
+        @keyframes takeDamage { 0% { filter: hue-rotate(-50deg) saturate(300%); } 100% { filter: none; } }
         
-        .anim-attack-up { animation: attackUp 0.3s ease; }
-        .anim-attack-down { animation: attackDown 0.3s ease; }
+        .anim-attack-up { animation: attackUp 0.3s ease; z-index: 10; }
+        .anim-attack-down { animation: attackDown 0.3s ease; z-index: 10;}
         .anim-damage { animation: takeDamage 0.5s ease; }
 
     </style>
 </head>
 <body>
 
-    <div id="game-over">
-        <div id="game-over-text">You Win!</div>
-        <button onclick="location.reload()">Play Again</button>
+    <div id="title-screen">
+        <h1>Card Wars</h1>
+        <p style="font-size: 1.2rem; color: #94a3b8;">Drag cards, use abilities, destroy the opponent.</p>
+        <button class="primary-btn" onclick="startGame()">Start Battle</button>
     </div>
 
-    <header>
-        <div class="player-info">
-            <div class="stat-bar">Opponent HP: <span class="hp-text" id="opp-hp">30</span></div>
-            <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="opp-mana">1/1</span> | Deck: <span id="opp-deck">15</span></div>
-        </div>
-
-        <div class="controls">
-            <div id="turn-indicator" style="font-weight:bold; font-size: 1.2rem;">Your Turn</div>
-            <button id="end-turn-btn">End Turn</button>
-        </div>
-
-        <div class="player-info" style="text-align: right;">
-            <div class="stat-bar">Player HP: <span class="hp-text" id="player-hp">30</span></div>
-            <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="player-mana">1/1</span> | Deck: <span id="player-deck">15</span></div>
-        </div>
-    </header>
-
-    <div class="game-board">
-        <div class="row" id="opp-board">
-            <div class="lane opp-lane" data-index="0"></div>
-            <div class="lane opp-lane" data-index="1"></div>
-            <div class="lane opp-lane" data-index="2"></div>
-            <div class="lane opp-lane" data-index="3"></div>
-        </div>
-
-        <hr style="width: 90%; border-color: #718093; opacity: 0.3; margin: 0;">
-
-        <div class="row" id="player-board">
-            <div class="lane player-lane" data-index="0"></div>
-            <div class="lane player-lane" data-index="1"></div>
-            <div class="lane player-lane" data-index="2"></div>
-            <div class="lane player-lane" data-index="3"></div>
-        </div>
+    <div id="game-over" style="display: none;">
+        <h1 id="game-over-text">You Win!</h1>
+        <button class="primary-btn" onclick="location.reload()">Play Again</button>
     </div>
 
-    <div class="hand-container" id="player-hand"></div>
+    <div id="game-ui">
+        <header>
+            <div class="player-info">
+                <div class="stat-bar">Opponent HP: <span class="hp-text" id="opp-hp">30</span></div>
+                <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="opp-mana">1/1</span> | Deck: <span id="opp-deck">15</span></div>
+            </div>
+
+            <div class="controls">
+                <div id="turn-indicator">Your Turn</div>
+                <button id="end-turn-btn">End Turn & Attack</button>
+            </div>
+
+            <div class="player-info" style="text-align: right;">
+                <div class="stat-bar">Player HP: <span class="hp-text" id="player-hp">30</span></div>
+                <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="player-mana">1/1</span> | Deck: <span id="player-deck">15</span></div>
+            </div>
+        </header>
+
+        <div class="game-board">
+            <div class="row" id="opp-board">
+                <div class="lane opp-lane" data-index="0"></div>
+                <div class="lane opp-lane" data-index="1"></div>
+                <div class="lane opp-lane" data-index="2"></div>
+                <div class="lane opp-lane" data-index="3"></div>
+            </div>
+            
+            <div style="width: 100%; height: 2px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);"></div>
+
+            <div class="row" id="player-board">
+                <div class="lane player-lane" data-index="0"></div>
+                <div class="lane player-lane" data-index="1"></div>
+                <div class="lane player-lane" data-index="2"></div>
+                <div class="lane player-lane" data-index="3"></div>
+            </div>
+        </div>
+
+        <div class="hand-container" id="player-hand"></div>
+    </div>
 
     <script>
         // --- DATABASE ---
+        // Some cards now have 'ability' objects.
         const MASTER_CARDS = [
             { id: 1, name: 'Peasant', cost: 1, atk: 1, hp: 2, art: '🧑‍🌾' },
             { id: 2, name: 'Stray Dog', cost: 1, atk: 2, hp: 1, art: '🐕' },
-            { id: 3, name: 'Lil Goblin', cost: 1, atk: 1, hp: 1, art: '👺' },
+            { id: 3, name: 'Cleric', cost: 2, atk: 1, hp: 3, art: '⚕️', ability: { type: 'heal', val: 3, desc: 'Heal Player 3 HP' } },
             { id: 4, name: 'Militia', cost: 2, atk: 2, hp: 3, art: '💂' },
-            { id: 5, name: 'Wild Boar', cost: 2, atk: 3, hp: 2, art: '🐗' },
+            { id: 5, name: 'Pyromancer', cost: 2, atk: 1, hp: 2, art: '🔥', ability: { type: 'damage_opp', val: 2, desc: 'Deal 2 DMG to Opp' } },
             { id: 6, name: 'Archer', cost: 2, atk: 4, hp: 1, art: '🏹' },
             { id: 7, name: 'Shield Bearer', cost: 3, atk: 1, hp: 6, art: '🛡️' },
             { id: 8, name: 'Knight', cost: 3, atk: 3, hp: 4, art: '🗡️' },
-            { id: 9, name: 'Wolf Pack', cost: 3, atk: 4, hp: 3, art: '🐺' },
+            { id: 9, name: 'Merchant', cost: 3, atk: 2, hp: 3, art: '💰', ability: { type: 'draw', val: 1, desc: 'Draw 1 Card' } },
             { id: 10, name: 'Corn Brute', cost: 4, atk: 4, hp: 5, art: '🌽' },
             { id: 11, name: 'Troll', cost: 4, atk: 5, hp: 4, art: '👹' },
             { id: 12, name: 'Assassin', cost: 4, atk: 6, hp: 2, art: '🥷' },
             { id: 13, name: 'Golem', cost: 5, atk: 4, hp: 7, art: '🪨' },
-            { id: 14, name: 'Wizard', cost: 5, atk: 6, hp: 4, art: '🧙‍♂️' },
+            { id: 14, name: 'Wizard', cost: 5, atk: 4, hp: 4, art: '🧙‍♂️', ability: { type: 'damage_opp', val: 4, desc: 'Deal 4 DMG to Opp' } },
             { id: 15, name: 'Grizzly', cost: 5, atk: 5, hp: 5, art: '🐻' },
             { id: 16, name: 'Dragon Whelp', cost: 6, atk: 6, hp: 6, art: '🐉' },
-            { id: 17, name: 'Paladin', cost: 6, atk: 5, hp: 8, art: '✨' },
+            { id: 17, name: 'Paladin', cost: 6, atk: 5, hp: 6, art: '✨', ability: { type: 'heal', val: 5, desc: 'Heal Player 5 HP' } },
             { id: 18, name: 'Behemoth', cost: 7, atk: 7, hp: 7, art: '🦍' },
             { id: 19, name: 'Dark Lord', cost: 8, atk: 8, hp: 8, art: '🧛' },
             { id: 20, name: 'Titan', cost: 10, atk: 10, hp: 10, art: '🌋' }
         ];
 
-        // --- GAME STATE ---
         let state = {
             player: { hp: 30, mana: 1, maxMana: 1, deck: [], hand: [] },
             opp: { hp: 30, mana: 1, maxMana: 1, deck: [], hand: [] },
-            turn: 'player', // 'player', 'combat', 'opp'
+            turn: 'player', 
             isGameOver: false
         };
 
         const DOM = {
+            ui: document.getElementById('game-ui'),
+            title: document.getElementById('title-screen'),
             pHp: document.getElementById('player-hp'),
             pMana: document.getElementById('player-mana'),
             pDeck: document.getElementById('player-deck'),
@@ -317,11 +290,15 @@
             gameOverText: document.getElementById('game-over-text')
         };
 
-        // --- UTILS ---
+        function startGame() {
+            DOM.title.style.display = 'none';
+            DOM.ui.style.display = 'flex';
+            initGame();
+        }
+
         function generateDeck() {
             let deck = [];
             for(let i=0; i<20; i++) {
-                // Bias towards lower cost cards
                 let pool = MASTER_CARDS.filter(c => c.cost <= (i < 10 ? 3 : (i < 15 ? 5 : 10)));
                 let card = Object.assign({}, pool[Math.floor(Math.random() * pool.length)]);
                 card.uid = Math.random().toString(36).substr(2, 9);
@@ -334,34 +311,83 @@
             const el = document.createElement('div');
             el.className = 'card';
             el.id = card.uid;
-            // Store stats in DOM for easy combat logic
-            el.dataset.atk = card.atk;
-            el.dataset.hp = card.hp;
-            el.dataset.cost = card.cost;
-            el.dataset.isPlayer = isPlayer;
+            
+            // Core data attached directly to element for easy access
+            el.cardData = card;
+            el.isExhausted = false; 
+
+            let abilityHTML = '';
+            let descHTML = card.ability ? card.ability.desc : '';
+            if(card.ability) {
+                abilityHTML = `<button class="ability-btn has-ability" title="${card.ability.desc}">✨</button>`;
+            }
 
             el.innerHTML = `
+                ${abilityHTML}
                 <div class="card-cost">${card.cost}</div>
                 <div class="card-title">${card.name}</div>
                 <div class="card-art">${card.art}</div>
+                <div class="card-desc">${descHTML}</div>
                 <div class="card-stats">
                     <span class="atk">⚔️ <span class="atk-val">${card.atk}</span></span>
                     <span class="hp">❤️ <span class="hp-val">${card.hp}</span></span>
                 </div>
             `;
 
+            // Setup Ability Click
+            if(card.ability) {
+                const btn = el.querySelector('.ability-btn');
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Only allow activation if it's player's turn, card is on board, and not exhausted
+                    if(state.turn !== 'player' || el.isExhausted || !el.parentElement.classList.contains('player-lane')) return;
+                    
+                    executeAbility(card.ability, 'player');
+                    exhaustCard(el);
+                    updateUI();
+                });
+            }
+
             if (isPlayer) {
                 el.setAttribute('draggable', 'true');
                 el.addEventListener('dragstart', (e) => {
-                    if(state.turn !== 'player' || card.cost > state.player.mana) {
-                        e.preventDefault(); return;
-                    }
+                    if(state.turn !== 'player' || card.cost > state.player.mana) { e.preventDefault(); return; }
                     e.dataTransfer.setData('text/plain', el.id);
                     setTimeout(() => el.style.opacity = '0.5', 0);
                 });
                 el.addEventListener('dragend', () => el.style.opacity = '1');
             }
             return el;
+        }
+
+        function exhaustCard(cardEl) {
+            cardEl.isExhausted = true;
+            cardEl.classList.add('exhausted');
+            const btn = cardEl.querySelector('.ability-btn');
+            if(btn) btn.disabled = true;
+        }
+
+        function refreshCards(sideClass) {
+            document.querySelectorAll(`.${sideClass} .card`).forEach(el => {
+                el.isExhausted = false;
+                el.classList.remove('exhausted');
+                const btn = el.querySelector('.ability-btn');
+                if(btn) btn.disabled = false;
+            });
+        }
+
+        function executeAbility(ability, initiator) {
+            const targetSide = initiator === 'player' ? 'opp' : 'player';
+            const userSide = initiator === 'player' ? 'player' : 'opp';
+
+            if(ability.type === 'heal') {
+                state[userSide].hp += ability.val;
+                if(state[userSide].hp > 30) state[userSide].hp = 30; // Max HP cap
+            } else if(ability.type === 'damage_opp') {
+                state[targetSide].hp -= ability.val;
+            } else if(ability.type === 'draw') {
+                drawCard(userSide);
+            }
         }
 
         function updateUI() {
@@ -373,9 +399,8 @@
             DOM.oMana.innerText = `${state.opp.mana}/${state.opp.maxMana}`;
             DOM.oDeck.innerText = state.opp.deck.length;
 
-            // Highlight playable cards
             Array.from(DOM.pHand.children).forEach(cardEl => {
-                if(parseInt(cardEl.dataset.cost) <= state.player.mana && state.turn === 'player') {
+                if(cardEl.cardData.cost <= state.player.mana && state.turn === 'player') {
                     cardEl.classList.add('playable');
                     cardEl.classList.remove('unplayable');
                 } else {
@@ -384,11 +409,10 @@
                 }
             });
 
-            if(state.player.hp <= 0) endGame("Opponent Wins!");
-            if(state.opp.hp <= 0) endGame("You Win!");
+            if(state.player.hp <= 0 && !state.isGameOver) endGame("Opponent Wins!");
+            if(state.opp.hp <= 0 && !state.isGameOver) endGame("You Win!");
         }
 
-        // --- CORE MECHANICS ---
         function drawCard(side) {
             let s = state[side];
             if(s.deck.length === 0) return;
@@ -404,19 +428,15 @@
         function initGame() {
             state.player.deck = generateDeck();
             state.opp.deck = generateDeck();
-            for(let i=0; i<4; i++) {
-                drawCard('player');
-                drawCard('opp');
-            }
+            for(let i=0; i<4; i++) { drawCard('player'); drawCard('opp'); }
             updateUI();
         }
 
-        // --- DRAG & DROP LOGIC ---
+        // --- DRAG & DROP ---
         document.querySelectorAll('.player-lane').forEach(lane => {
             lane.addEventListener('dragover', (e) => {
                 if(lane.children.length === 0 && state.turn === 'player') {
-                    e.preventDefault();
-                    lane.classList.add('drag-over');
+                    e.preventDefault(); lane.classList.add('drag-over');
                 }
             });
             lane.addEventListener('dragleave', () => lane.classList.remove('drag-over'));
@@ -428,13 +448,16 @@
                 const cardEl = document.getElementById(cardId);
                 
                 if(cardEl && lane.children.length === 0) {
-                    let cost = parseInt(cardEl.dataset.cost);
+                    let cost = cardEl.cardData.cost;
                     if(state.player.mana >= cost) {
                         state.player.mana -= cost;
                         lane.appendChild(cardEl);
                         cardEl.setAttribute('draggable', 'false');
                         cardEl.classList.remove('playable', 'unplayable');
-                        // Remove from hand array
+                        
+                        // Newly played cards are immediately exhausted ("Summoning Sickness")
+                        exhaustCard(cardEl);
+                        
                         state.player.hand = state.player.hand.filter(c => c.uid !== cardId);
                         updateUI();
                     }
@@ -442,7 +465,7 @@
             });
         });
 
-        // --- COMBAT & TURN LOGIC ---
+        // --- COMBAT SEQUENCE ---
         DOM.endBtn.addEventListener('click', () => {
             if(state.turn !== 'player') return;
             state.turn = 'combat';
@@ -461,16 +484,18 @@
                 
                 if(pLane.children.length > 0) {
                     let pCard = pLane.children[0];
+                    // Skip if exhausted (used ability or summoning sickness)
+                    if(pCard.isExhausted) continue; 
+
                     pCard.classList.add('anim-attack-up');
                     await sleep(300);
                     
-                    let atk = parseInt(pCard.dataset.atk);
-                    if(oLane.children.length > 0) {
-                        damageCard(oLane.children[0], atk);
-                    } else {
-                        state.opp.hp -= atk;
-                        updateUI();
-                    }
+                    let atk = pCard.cardData.atk;
+                    if(oLane.children.length > 0) damageCard(oLane.children[0], atk);
+                    else state.opp.hp -= atk;
+                    
+                    exhaustCard(pCard); // Exhaust after attacking
+                    updateUI();
                     pCard.classList.remove('anim-attack-up');
                     await sleep(200);
                 }
@@ -483,36 +508,34 @@
                 
                 if(oLane.children.length > 0) {
                     let oCard = oLane.children[0];
+                    if(oCard.isExhausted) continue;
+
                     oCard.classList.add('anim-attack-down');
                     await sleep(300);
                     
-                    let atk = parseInt(oCard.dataset.atk);
-                    if(pLane.children.length > 0) {
-                        damageCard(pLane.children[0], atk);
-                    } else {
-                        state.player.hp -= atk;
-                        updateUI();
-                    }
+                    let atk = oCard.cardData.atk;
+                    if(pLane.children.length > 0) damageCard(pLane.children[0], atk);
+                    else state.player.hp -= atk;
+                    
+                    exhaustCard(oCard);
+                    updateUI();
                     oCard.classList.remove('anim-attack-down');
                     await sleep(200);
                 }
             }
 
-            if(!state.isGameOver) {
-                startOpponentTurn();
-            }
+            if(!state.isGameOver) startOpponentTurn();
         }
 
         function damageCard(cardEl, amount) {
             cardEl.classList.add('anim-damage');
             setTimeout(() => cardEl.classList.remove('anim-damage'), 500);
             
-            let hp = parseInt(cardEl.dataset.hp) - amount;
-            cardEl.dataset.hp = hp;
-            cardEl.querySelector('.hp-val').innerText = hp;
+            cardEl.cardData.hp -= amount;
+            cardEl.querySelector('.hp-val').innerText = cardEl.cardData.hp;
             
-            if(hp <= 0) {
-                setTimeout(() => cardEl.remove(), 500);
+            if(cardEl.cardData.hp <= 0) {
+                setTimeout(() => cardEl.remove(), 400);
             }
         }
 
@@ -521,7 +544,10 @@
             state.turn = 'opp';
             DOM.turnInd.innerText = "Opponent Turn...";
             
-            // Start of turn setup
+            // Refresh opponent cards
+            refreshCards('opp-lane');
+
+            // Opponent Mana capped at 10
             if(state.opp.maxMana < 10) state.opp.maxMana++;
             state.opp.mana = state.opp.maxMana;
             drawCard('opp');
@@ -530,24 +556,34 @@
             const sleep = ms => new Promise(r => setTimeout(r, ms));
             await sleep(1000);
 
-            // AI Logic: Play affordable cards into empty lanes randomly
-            let emptyLanes = Array.from(document.querySelectorAll('.opp-lane'))
-                                  .filter(l => l.children.length === 0);
-            
-            // Sort hand by most expensive first (simple greedy AI)
+            // AI Phase 1: Use Abilities
+            let oppBoardCards = document.querySelectorAll('.opp-lane .card');
+            for(let cardEl of oppBoardCards) {
+                if(cardEl.cardData.ability && !cardEl.isExhausted) {
+                    // 50% chance to use ability instead of attacking
+                    if(Math.random() > 0.5) {
+                        executeAbility(cardEl.cardData.ability, 'opp');
+                        exhaustCard(cardEl);
+                        updateUI();
+                        await sleep(500);
+                    }
+                }
+            }
+
+            // AI Phase 2: Play Cards
+            let emptyLanes = Array.from(document.querySelectorAll('.opp-lane')).filter(l => l.children.length === 0);
             state.opp.hand.sort((a,b) => b.cost - a.cost);
 
             for (let i = state.opp.hand.length - 1; i >= 0; i--) {
                 let card = state.opp.hand[i];
                 if (card.cost <= state.opp.mana && emptyLanes.length > 0) {
-                    // Play card
                     state.opp.mana -= card.cost;
                     let targetLane = emptyLanes[Math.floor(Math.random() * emptyLanes.length)];
                     
                     let cardEl = createCardDOM(card, false);
                     targetLane.appendChild(cardEl);
+                    exhaustCard(cardEl); // Summoning sickness
                     
-                    // Remove from hand and available lanes
                     state.opp.hand.splice(i, 1);
                     emptyLanes = emptyLanes.filter(l => l !== targetLane);
                     
@@ -556,15 +592,15 @@
                 }
             }
 
-            if(!state.isGameOver) {
-                startPlayerTurn();
-            }
+            if(!state.isGameOver) startPlayerTurn();
         }
 
         function startPlayerTurn() {
+            // Player Mana capped at 10
             if(state.player.maxMana < 10) state.player.maxMana++;
             state.player.mana = state.player.maxMana;
             drawCard('player');
+            refreshCards('player-lane');
             
             state.turn = 'player';
             DOM.turnInd.innerText = "Your Turn";
@@ -577,9 +613,6 @@
             DOM.gameOverText.innerText = msg;
             DOM.gameOver.style.display = 'flex';
         }
-
-        // Boot
-        initGame();
 
     </script>
 </body>
