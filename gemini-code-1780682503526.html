@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lane Card Battler</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px;
+            background-color: #1a252f;
+            border-bottom: 2px solid #34495e;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .health { color: #e74c3c; }
+
+        .game-board {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+
+        /* The 4 Lanes for each player */
+        .lane {
+            width: 120px;
+            height: 160px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 2px dashed #7f8c8d;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .lane.drag-over {
+            background-color: rgba(46, 204, 113, 0.3);
+            border-color: #2ecc71;
+        }
+
+        /* Player Hand Area */
+        .hand {
+            height: 200px;
+            background-color: #1a252f;
+            border-top: 2px solid #34495e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        /* Card Styling */
+        .card {
+            width: 110px;
+            height: 150px;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border-radius: 8px;
+            border: 3px solid #bdc3c7;
+            padding: 8px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: grab;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+
+        .card:active {
+            cursor: grabbing;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 4px;
+        }
+
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+
+        .atk { color: #c0392b; }
+        .def { color: #2980b9; }
+
+        /* Opponent side styling */
+        .opponent-lane {
+            border-color: #c0392b;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Card Battler Framework</h2>
+        <div class="stats">
+            <div>Opponent HP: <span class="health" id="opp-hp">25</span></div>
+            <div>Player HP: <span class="health" id="player-hp">25</span></div>
+        </div>
+    </header>
+
+    <div class="game-board">
+        <div class="row" id="opponent-board">
+            <div class="lane opponent-lane"></div>
+            <div class="lane opponent-lane"></div>
+            <div class="lane opponent-lane"></div>
+            <div class="lane opponent-lane"></div>
+        </div>
+
+        <hr style="width: 80%; border-color: #7f8c8d; opacity: 0.3;">
+
+        <div class="row" id="player-board">
+            <div class="lane player-lane"></div>
+            <div class="lane player-lane"></div>
+            <div class="lane player-lane"></div>
+            <div class="lane player-lane"></div>
+        </div>
+    </div>
+
+    <div class="hand" id="player-hand">
+        </div>
+
+    <script>
+        // Sample card data
+        const cardDatabase = [
+            { id: 'c1', name: 'Corn Knight', atk: 3, def: 2 },
+            { id: 'c2', name: 'Pig', atk: 1, def: 4 },
+            { id: 'c3', name: 'Wandering Bald Man', atk: 2, def: 2 },
+            { id: 'c4', name: 'Cool Dog', atk: 4, def: 1 },
+            { id: 'c5', name: 'Cave Troll', atk: 5, def: 5 }
+        ];
+
+        const handContainer = document.getElementById('player-hand');
+        const playerLanes = document.querySelectorAll('.player-lane');
+
+        // Function to create a card element
+        function createCard(cardData) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.setAttribute('draggable', 'true');
+            card.id = cardData.id + '-' + Math.random().toString(36).substr(2, 5); // unique ID
+
+            card.innerHTML = `
+                <div class="card-title">${cardData.name}</div>
+                <div style="text-align:center; font-size: 2rem;">⚔️</div>
+                <div class="card-stats">
+                    <span class="atk">🗡️ ${cardData.atk}</span>
+                    <span class="def">🛡️ ${cardData.def}</span>
+                </div>
+            `;
+
+            // Drag Events
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', card.id);
+                setTimeout(() => card.style.opacity = '0.5', 0);
+            });
+
+            card.addEventListener('dragend', () => {
+                card.style.opacity = '1';
+            });
+
+            return card;
+        }
+
+        // Deal initial hand
+        function dealHand() {
+            for(let i = 0; i < 5; i++) {
+                const randomCard = cardDatabase[Math.floor(Math.random() * cardDatabase.length)];
+                handContainer.appendChild(createCard(randomCard));
+            }
+        }
+
+        // Setup drop zones for player lanes
+        playerLanes.forEach(lane => {
+            lane.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Allows dropping
+                // Only allow drop if lane is empty
+                if (lane.children.length === 0) {
+                    lane.classList.add('drag-over');
+                }
+            });
+
+            lane.addEventListener('dragleave', () => {
+                lane.classList.remove('drag-over');
+            });
+
+            lane.addEventListener('drop', (e) => {
+                e.preventDefault();
+                lane.classList.remove('drag-over');
+                
+                // Only accept card if the lane is empty
+                if (lane.children.length === 0) {
+                    const cardId = e.dataTransfer.getData('text/plain');
+                    const draggedCard = document.getElementById(cardId);
+                    if(draggedCard) {
+                        lane.appendChild(draggedCard);
+                        draggedCard.setAttribute('draggable', 'false'); // Lock card in place
+                        draggedCard.style.cursor = 'default';
+                    }
+                }
+            });
+        });
+
+        // Initialize Game
+        dealHand();
+    </script>
+</body>
+</html>
