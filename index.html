@@ -3,82 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card Wars: Legends</title>
+    <title>Card Wars: Online</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lato:wght@400;700&display=swap');
 
         :root {
-            --bg-dark: #0f172a;
-            --panel-bg: rgba(30, 41, 59, 0.8);
-            --accent: #3b82f6;
-            --danger: #ef4444;
-            --success: #10b981;
-            --card-bg: #f8fafc;
-            --gold: #fbbf24;
+            --bg-dark: #0f172a; --panel-bg: rgba(30, 41, 59, 0.8);
+            --accent: #3b82f6; --danger: #ef4444;
+            --success: #10b981; --card-bg: #f8fafc; --gold: #fbbf24;
         }
 
         body {
             font-family: 'Lato', sans-serif;
             background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
-            color: white;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            user-select: none;
+            color: white; margin: 0; display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden; user-select: none;
         }
 
         /* --- SCREENS --- */
         #title-screen, #game-over {
-            position: absolute;
-            inset: 0;
-            background: rgba(2, 6, 23, 0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            backdrop-filter: blur(10px);
+            position: absolute; inset: 0; background: rgba(2, 6, 23, 0.95);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 200; backdrop-filter: blur(10px); text-align: center;
         }
 
-        #title-screen h1 {
-            font-family: 'Cinzel', serif;
-            font-size: 5rem;
-            color: var(--gold);
-            margin: 0 0 10px 0;
-            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        h1 { font-family: 'Cinzel', serif; font-size: 4rem; color: var(--gold); margin: 0 0 20px 0; }
+
+        .lobby-box {
+            background: var(--panel-bg); padding: 30px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1); width: 350px;
         }
 
         .primary-btn {
-            background: linear-gradient(135deg, var(--accent), #2563eb);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            font-family: 'Cinzel', serif;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-            margin-top: 20px;
+            background: linear-gradient(135deg, var(--accent), #2563eb); color: white;
+            border: none; padding: 12px 24px; font-size: 1.2rem; font-family: 'Cinzel', serif;
+            font-weight: bold; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); margin-top: 10px; width: 100%;
         }
+        .primary-btn:hover { transform: scale(1.02); }
+        .primary-btn:active { transform: scale(0.98); }
 
-        .primary-btn:hover { transform: scale(1.05); }
-        .primary-btn:active { transform: scale(0.95); }
+        input[type="text"] {
+            width: 100%; padding: 10px; box-sizing: border-box; margin-top: 10px;
+            border-radius: 6px; border: none; font-size: 1.1rem; text-align: center;
+        }
 
         #game-ui { display: none; flex-direction: column; height: 100%; }
 
-        /* --- HEADER & STATS --- */
+        /* --- UI & BOARD --- */
         header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 40px;
-            background: var(--panel-bg);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 40px; background: var(--panel-bg);
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(5px);
         }
 
         .player-info { display: flex; flex-direction: column; gap: 5px; }
@@ -90,95 +67,42 @@
         #turn-indicator { font-family: 'Cinzel', serif; font-size: 1.5rem; color: var(--gold); margin-bottom: 10px; }
         
         #end-turn-btn {
-            background-color: var(--success);
-            color: white; border: none; padding: 10px 25px;
-            font-size: 1.1rem; font-weight: bold; border-radius: 6px;
-            cursor: pointer; transition: transform 0.1s;
+            background-color: var(--success); color: white; border: none; padding: 10px 25px;
+            font-size: 1.1rem; font-weight: bold; border-radius: 6px; cursor: pointer;
         }
         #end-turn-btn:disabled { background-color: #64748b; cursor: not-allowed; }
 
-        /* --- GAME BOARD --- */
-        .game-board {
-            flex-grow: 1; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; gap: 30px;
-        }
-
+        .game-board { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 30px; }
         .row { display: flex; gap: 20px; }
-
-        .lane {
-            width: 120px; height: 160px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 2px dashed rgba(255,255,255,0.2);
-            border-radius: 12px;
-            display: flex; justify-content: center; align-items: center;
-            position: relative; transition: all 0.3s;
-        }
-
+        .lane { width: 120px; height: 160px; background-color: rgba(255, 255, 255, 0.05); border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; display: flex; justify-content: center; align-items: center; position: relative; }
         .player-lane.drag-over { background-color: rgba(16, 185, 129, 0.2); border-color: var(--success); }
 
-        /* --- HAND --- */
-        .hand-container {
-            height: 190px;
-            background: var(--panel-bg);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            display: flex; justify-content: center; align-items: center;
-            gap: 15px; padding: 10px; overflow-x: auto;
-        }
+        .hand-container { height: 190px; background: var(--panel-bg); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; gap: 15px; padding: 10px; overflow-x: auto; }
 
         /* --- CARDS --- */
         .card {
-            width: 110px; height: 150px;
-            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
-            color: #0f172a; border-radius: 8px;
-            border: 2px solid #cbd5e1; padding: 6px;
-            box-sizing: border-box; display: flex; flex-direction: column;
-            justify-content: space-between; position: relative;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
-            transition: transform 0.2s, filter 0.3s;
+            width: 110px; height: 150px; background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            color: #0f172a; border-radius: 8px; border: 2px solid #cbd5e1; padding: 6px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between; position: relative;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4); transition: transform 0.2s, filter 0.3s;
         }
-
         .card.playable { cursor: grab; border-color: var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
-        .card.playable:active { cursor: grabbing; }
         .card.unplayable { cursor: not-allowed; filter: brightness(0.6); }
-        
-        /* Exhaustion state */
         .card.exhausted { filter: grayscale(100%) brightness(0.7); box-shadow: none; }
 
-        .card-cost {
-            position: absolute; top: -12px; left: -12px;
-            background: var(--accent); color: white;
-            width: 30px; height: 30px; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-
+        .card-cost { position: absolute; top: -12px; left: -12px; background: var(--accent); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid white; }
         .card-title { font-size: 0.75rem; font-weight: bold; text-align: center; border-bottom: 1px solid #94a3b8; padding-bottom: 2px; margin-top: 6px; }
         .card-art { font-size: 2.5rem; text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
-        
         .card-desc { font-size: 0.55rem; text-align: center; color: #475569; height: 20px; overflow: hidden; line-height: 1; margin-bottom: 2px;}
+        .card-stats { display: flex; justify-content: space-between; background: rgba(0,0,0,0.05); padding: 4px; border-radius: 4px; font-weight: bold; font-size: 0.9rem; }
+        .atk { color: #b91c1c; } .hp { color: #15803d; }
 
-        .card-stats {
-            display: flex; justify-content: space-between;
-            background: rgba(0,0,0,0.05); padding: 4px; border-radius: 4px; font-weight: bold; font-size: 0.9rem;
-        }
-
-        .atk { color: #b91c1c; }
-        .hp { color: #15803d; }
-
-        /* Ability Button */
         .ability-btn {
-            position: absolute; top: -12px; right: -12px;
-            background: var(--gold); border: 2px solid white; border-radius: 50%;
-            width: 30px; height: 30px; cursor: pointer; font-size: 1rem;
-            display: none; justify-content: center; align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: transform 0.1s;
+            position: absolute; top: -12px; right: -12px; background: var(--gold); border: 2px solid white; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 1rem; display: none; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
-        .ability-btn:hover { transform: scale(1.1); }
-        .ability-btn:disabled { filter: grayscale(100%); cursor: not-allowed; transform: none; }
-        
-        .lane .card .ability-btn.has-ability { display: flex; } /* Only show when on board */
+        .ability-btn:disabled { filter: grayscale(100%); cursor: not-allowed; }
+        .lane .card .ability-btn.has-ability { display: flex; }
 
-        /* Animations */
         @keyframes attackUp { 0% { transform: translateY(0); } 50% { transform: translateY(-30px); } 100% { transform: translateY(0); } }
         @keyframes attackDown { 0% { transform: translateY(0); } 50% { transform: translateY(30px); } 100% { transform: translateY(0); } }
         @keyframes takeDamage { 0% { filter: hue-rotate(-50deg) saturate(300%); } 100% { filter: none; } }
@@ -186,20 +110,28 @@
         .anim-attack-up { animation: attackUp 0.3s ease; z-index: 10; }
         .anim-attack-down { animation: attackDown 0.3s ease; z-index: 10;}
         .anim-damage { animation: takeDamage 0.5s ease; }
-
     </style>
 </head>
 <body>
 
     <div id="title-screen">
-        <h1>Card Wars</h1>
-        <p style="font-size: 1.2rem; color: #94a3b8;">Drag cards, use abilities, destroy the opponent.</p>
-        <button class="primary-btn" onclick="startGame()">Start Battle</button>
+        <h1>Card Wars Online</h1>
+        <div class="lobby-box">
+            <h3 style="margin-top:0; color: var(--success);">Host a Game</h3>
+            <p style="font-size: 1.1rem;">Your Room Code: <br><strong id="my-id" style="font-size: 1.5rem; color: white;">Generating...</strong></p>
+            <p style="font-size: 0.8rem; color: #94a3b8;">Share this code with your opponent. The game will start when they join.</p>
+            
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+            
+            <h3 style="margin-top:0; color: var(--accent);">Join a Game</h3>
+            <input type="text" id="join-id" placeholder="Enter Friend's Room Code">
+            <button class="primary-btn" onclick="joinGame()">Connect</button>
+        </div>
     </div>
 
     <div id="game-over" style="display: none;">
         <h1 id="game-over-text">You Win!</h1>
-        <button class="primary-btn" onclick="location.reload()">Play Again</button>
+        <button class="primary-btn" onclick="location.reload()" style="width: 200px;">Main Menu</button>
     </div>
 
     <div id="game-ui">
@@ -208,12 +140,10 @@
                 <div class="stat-bar">Opponent HP: <span class="hp-text" id="opp-hp">30</span></div>
                 <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="opp-mana">1/1</span> | Deck: <span id="opp-deck">15</span></div>
             </div>
-
             <div class="controls">
-                <div id="turn-indicator">Your Turn</div>
-                <button id="end-turn-btn">End Turn & Attack</button>
+                <div id="turn-indicator">Waiting...</div>
+                <button id="end-turn-btn" disabled>End Turn & Attack</button>
             </div>
-
             <div class="player-info" style="text-align: right;">
                 <div class="stat-bar">Player HP: <span class="hp-text" id="player-hp">30</span></div>
                 <div class="stat-bar" style="font-size: 0.9rem;">Mana: <span class="mana-text" id="player-mana">1/1</span> | Deck: <span id="player-deck">15</span></div>
@@ -227,9 +157,7 @@
                 <div class="lane opp-lane" data-index="2"></div>
                 <div class="lane opp-lane" data-index="3"></div>
             </div>
-            
             <div style="width: 100%; height: 2px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);"></div>
-
             <div class="row" id="player-board">
                 <div class="lane player-lane" data-index="0"></div>
                 <div class="lane player-lane" data-index="1"></div>
@@ -237,13 +165,11 @@
                 <div class="lane player-lane" data-index="3"></div>
             </div>
         </div>
-
         <div class="hand-container" id="player-hand"></div>
     </div>
 
     <script>
         // --- DATABASE ---
-        // Some cards now have 'ability' objects.
         const MASTER_CARDS = [
             { id: 1, name: 'Peasant', cost: 1, atk: 1, hp: 2, art: '🧑‍🌾' },
             { id: 2, name: 'Stray Dog', cost: 1, atk: 2, hp: 1, art: '🐕' },
@@ -267,35 +193,90 @@
             { id: 20, name: 'Titan', cost: 10, atk: 10, hp: 10, art: '🌋' }
         ];
 
-        let state = {
-            player: { hp: 30, mana: 1, maxMana: 1, deck: [], hand: [] },
-            opp: { hp: 30, mana: 1, maxMana: 1, deck: [], hand: [] },
-            turn: 'player', 
-            isGameOver: false
-        };
-
+        let state = { player: { hp: 30, mana: 0, maxMana: 0, deck: [], hand: [] }, opp: { hp: 30, mana: 0, maxMana: 0, deck: [], hand: [] }, turn: 'wait', isGameOver: false };
         const DOM = {
-            ui: document.getElementById('game-ui'),
-            title: document.getElementById('title-screen'),
-            pHp: document.getElementById('player-hp'),
-            pMana: document.getElementById('player-mana'),
-            pDeck: document.getElementById('player-deck'),
-            oHp: document.getElementById('opp-hp'),
-            oMana: document.getElementById('opp-mana'),
-            oDeck: document.getElementById('opp-deck'),
-            pHand: document.getElementById('player-hand'),
-            endBtn: document.getElementById('end-turn-btn'),
-            turnInd: document.getElementById('turn-indicator'),
-            gameOver: document.getElementById('game-over'),
-            gameOverText: document.getElementById('game-over-text')
+            ui: document.getElementById('game-ui'), title: document.getElementById('title-screen'),
+            pHp: document.getElementById('player-hp'), pMana: document.getElementById('player-mana'), pDeck: document.getElementById('player-deck'),
+            oHp: document.getElementById('opp-hp'), oMana: document.getElementById('opp-mana'), oDeck: document.getElementById('opp-deck'),
+            pHand: document.getElementById('player-hand'), endBtn: document.getElementById('end-turn-btn'), turnInd: document.getElementById('turn-indicator'),
+            gameOver: document.getElementById('game-over'), gameOverText: document.getElementById('game-over-text')
         };
 
-        function startGame() {
-            DOM.title.style.display = 'none';
-            DOM.ui.style.display = 'flex';
-            initGame();
+        // --- NETWORKING ---
+        const peer = new Peer();
+        let conn = null;
+        let isHost = true;
+
+        peer.on('open', (id) => {
+            document.getElementById('my-id').innerText = id;
+        });
+
+        // Host receives connection
+        peer.on('connection', (connection) => {
+            conn = connection;
+            isHost = true;
+            setupGameConnection();
+        });
+
+        // Guest initiates connection
+        function joinGame() {
+            const hostId = document.getElementById('join-id').value.trim();
+            if(!hostId) return;
+            conn = peer.connect(hostId);
+            isHost = false;
+            document.getElementById('my-id').innerText = "Connecting...";
+            setupGameConnection();
         }
 
+        function setupGameConnection() {
+            conn.on('open', () => {
+                DOM.title.style.display = 'none';
+                DOM.ui.style.display = 'flex';
+                
+                if (isHost) {
+                    let hostDeck = generateDeck();
+                    let guestDeck = generateDeck();
+                    
+                    conn.send({ type: 'INIT', oppDeck: hostDeck, myDeck: guestDeck });
+                    state.player.deck = hostDeck; state.opp.deck = guestDeck;
+                    
+                    initGame();
+                    startPlayerTurn(); // Host goes first
+                }
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'INIT') {
+                    state.player.deck = data.myDeck;
+                    state.opp.deck = data.oppDeck;
+                    initGame();
+                    startOpponentTurn(); // Guest waits
+                }
+                if (data.type === 'PLAY') {
+                    let targetLane = document.querySelector(`.opp-lane[data-index="${data.lane}"]`);
+                    state.opp.mana -= data.cardData.cost;
+                    let cardEl = createCardDOM(data.cardData, false);
+                    targetLane.appendChild(cardEl);
+                    exhaustCard(cardEl);
+                    updateUI();
+                }
+                if (data.type === 'ABILITY') {
+                    let cardEl = document.querySelector(`.opp-lane[data-index="${data.lane}"] .card`);
+                    if(cardEl) {
+                        executeAbility(cardEl.cardData.ability, 'opp');
+                        exhaustCard(cardEl);
+                        updateUI();
+                    }
+                }
+                if (data.type === 'END_TURN') {
+                    state.turn = 'combat';
+                    DOM.turnInd.innerText = "Combat Phase...";
+                    runCombatSequence(false); // false means opponent triggered it
+                }
+            });
+        }
+
+        // --- GAME LOGIC ---
         function generateDeck() {
             let deck = [];
             for(let i=0; i<20; i++) {
@@ -309,41 +290,30 @@
 
         function createCardDOM(card, isPlayer = true) {
             const el = document.createElement('div');
-            el.className = 'card';
-            el.id = card.uid;
-            
-            // Core data attached directly to element for easy access
-            el.cardData = card;
-            el.isExhausted = false; 
+            el.className = 'card'; el.id = card.uid; el.cardData = card; el.isExhausted = false; 
 
-            let abilityHTML = '';
-            let descHTML = card.ability ? card.ability.desc : '';
-            if(card.ability) {
-                abilityHTML = `<button class="ability-btn has-ability" title="${card.ability.desc}">✨</button>`;
-            }
-
+            let abilityHTML = card.ability ? `<button class="ability-btn has-ability" title="${card.ability.desc}">✨</button>` : '';
             el.innerHTML = `
                 ${abilityHTML}
                 <div class="card-cost">${card.cost}</div>
                 <div class="card-title">${card.name}</div>
                 <div class="card-art">${card.art}</div>
-                <div class="card-desc">${descHTML}</div>
+                <div class="card-desc">${card.ability ? card.ability.desc : ''}</div>
                 <div class="card-stats">
                     <span class="atk">⚔️ <span class="atk-val">${card.atk}</span></span>
                     <span class="hp">❤️ <span class="hp-val">${card.hp}</span></span>
                 </div>
             `;
 
-            // Setup Ability Click
             if(card.ability) {
                 const btn = el.querySelector('.ability-btn');
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    // Only allow activation if it's player's turn, card is on board, and not exhausted
                     if(state.turn !== 'player' || el.isExhausted || !el.parentElement.classList.contains('player-lane')) return;
                     
                     executeAbility(card.ability, 'player');
                     exhaustCard(el);
+                    conn.send({ type: 'ABILITY', lane: el.parentElement.dataset.index });
                     updateUI();
                 });
             }
@@ -361,18 +331,14 @@
         }
 
         function exhaustCard(cardEl) {
-            cardEl.isExhausted = true;
-            cardEl.classList.add('exhausted');
-            const btn = cardEl.querySelector('.ability-btn');
-            if(btn) btn.disabled = true;
+            cardEl.isExhausted = true; cardEl.classList.add('exhausted');
+            const btn = cardEl.querySelector('.ability-btn'); if(btn) btn.disabled = true;
         }
 
         function refreshCards(sideClass) {
             document.querySelectorAll(`.${sideClass} .card`).forEach(el => {
-                el.isExhausted = false;
-                el.classList.remove('exhausted');
-                const btn = el.querySelector('.ability-btn');
-                if(btn) btn.disabled = false;
+                el.isExhausted = false; el.classList.remove('exhausted');
+                const btn = el.querySelector('.ability-btn'); if(btn) btn.disabled = false;
             });
         }
 
@@ -381,36 +347,10 @@
             const userSide = initiator === 'player' ? 'player' : 'opp';
 
             if(ability.type === 'heal') {
-                state[userSide].hp += ability.val;
-                if(state[userSide].hp > 30) state[userSide].hp = 30; // Max HP cap
+                state[userSide].hp = Math.min(30, state[userSide].hp + ability.val);
             } else if(ability.type === 'damage_opp') {
                 state[targetSide].hp -= ability.val;
-            } else if(ability.type === 'draw') {
-                drawCard(userSide);
-            }
-        }
-
-        function updateUI() {
-            DOM.pHp.innerText = state.player.hp;
-            DOM.pMana.innerText = `${state.player.mana}/${state.player.maxMana}`;
-            DOM.pDeck.innerText = state.player.deck.length;
-            
-            DOM.oHp.innerText = state.opp.hp;
-            DOM.oMana.innerText = `${state.opp.mana}/${state.opp.maxMana}`;
-            DOM.oDeck.innerText = state.opp.deck.length;
-
-            Array.from(DOM.pHand.children).forEach(cardEl => {
-                if(cardEl.cardData.cost <= state.player.mana && state.turn === 'player') {
-                    cardEl.classList.add('playable');
-                    cardEl.classList.remove('unplayable');
-                } else {
-                    cardEl.classList.remove('playable');
-                    cardEl.classList.add('unplayable');
-                }
-            });
-
-            if(state.player.hp <= 0 && !state.isGameOver) endGame("Opponent Wins!");
-            if(state.opp.hp <= 0 && !state.isGameOver) endGame("You Win!");
+            } else if(ability.type === 'draw') drawCard(userSide);
         }
 
         function drawCard(side) {
@@ -418,90 +358,89 @@
             if(s.deck.length === 0) return;
             let card = s.deck.pop();
             s.hand.push(card);
-            
-            if(side === 'player') {
-                DOM.pHand.appendChild(createCardDOM(card, true));
-            }
+            if(side === 'player') DOM.pHand.appendChild(createCardDOM(card, true));
             updateUI();
         }
 
         function initGame() {
-            state.player.deck = generateDeck();
-            state.opp.deck = generateDeck();
             for(let i=0; i<4; i++) { drawCard('player'); drawCard('opp'); }
             updateUI();
+        }
+
+        function updateUI() {
+            DOM.pHp.innerText = state.player.hp; DOM.pMana.innerText = `${state.player.mana}/${state.player.maxMana}`; DOM.pDeck.innerText = state.player.deck.length;
+            DOM.oHp.innerText = state.opp.hp; DOM.oMana.innerText = `${state.opp.mana}/${state.opp.maxMana}`; DOM.oDeck.innerText = state.opp.deck.length;
+
+            Array.from(DOM.pHand.children).forEach(cardEl => {
+                if(cardEl.cardData.cost <= state.player.mana && state.turn === 'player') {
+                    cardEl.classList.add('playable'); cardEl.classList.remove('unplayable');
+                } else {
+                    cardEl.classList.remove('playable'); cardEl.classList.add('unplayable');
+                }
+            });
+
+            if(state.player.hp <= 0 && !state.isGameOver) endGame("Opponent Wins!");
+            if(state.opp.hp <= 0 && !state.isGameOver) endGame("You Win!");
         }
 
         // --- DRAG & DROP ---
         document.querySelectorAll('.player-lane').forEach(lane => {
             lane.addEventListener('dragover', (e) => {
-                if(lane.children.length === 0 && state.turn === 'player') {
-                    e.preventDefault(); lane.classList.add('drag-over');
-                }
+                if(lane.children.length === 0 && state.turn === 'player') { e.preventDefault(); lane.classList.add('drag-over'); }
             });
             lane.addEventListener('dragleave', () => lane.classList.remove('drag-over'));
             lane.addEventListener('drop', (e) => {
-                e.preventDefault();
-                lane.classList.remove('drag-over');
-                
+                e.preventDefault(); lane.classList.remove('drag-over');
                 const cardId = e.dataTransfer.getData('text/plain');
                 const cardEl = document.getElementById(cardId);
                 
                 if(cardEl && lane.children.length === 0) {
-                    let cost = cardEl.cardData.cost;
-                    if(state.player.mana >= cost) {
-                        state.player.mana -= cost;
+                    if(state.player.mana >= cardEl.cardData.cost) {
+                        state.player.mana -= cardEl.cardData.cost;
                         lane.appendChild(cardEl);
                         cardEl.setAttribute('draggable', 'false');
                         cardEl.classList.remove('playable', 'unplayable');
-                        
-                        // Newly played cards are immediately exhausted ("Summoning Sickness")
                         exhaustCard(cardEl);
-                        
                         state.player.hand = state.player.hand.filter(c => c.uid !== cardId);
+                        
+                        conn.send({ type: 'PLAY', cardData: cardEl.cardData, lane: lane.dataset.index });
                         updateUI();
                     }
                 }
             });
         });
 
-        // --- COMBAT SEQUENCE ---
+        // --- TURNS & COMBAT ---
         DOM.endBtn.addEventListener('click', () => {
             if(state.turn !== 'player') return;
             state.turn = 'combat';
-            DOM.endBtn.disabled = true;
-            DOM.turnInd.innerText = "Combat Phase...";
-            runCombatSequence();
+            DOM.endBtn.disabled = true; DOM.turnInd.innerText = "Combat Phase...";
+            conn.send({ type: 'END_TURN' });
+            runCombatSequence(true);
         });
 
-        async function runCombatSequence() {
+        async function runCombatSequence(isLocal) {
             const sleep = ms => new Promise(r => setTimeout(r, ms));
             
-            // 1. Player Attacks
+            // 1. Player Attacks (Bottom attacks Top visually for both screens)
             for(let i=0; i<4; i++) {
                 let pLane = document.querySelector(`.player-lane[data-index="${i}"]`);
                 let oLane = document.querySelector(`.opp-lane[data-index="${i}"]`);
                 
                 if(pLane.children.length > 0) {
                     let pCard = pLane.children[0];
-                    // Skip if exhausted (used ability or summoning sickness)
                     if(pCard.isExhausted) continue; 
-
-                    pCard.classList.add('anim-attack-up');
-                    await sleep(300);
+                    pCard.classList.add('anim-attack-up'); await sleep(300);
                     
-                    let atk = pCard.cardData.atk;
-                    if(oLane.children.length > 0) damageCard(oLane.children[0], atk);
-                    else state.opp.hp -= atk;
+                    if(oLane.children.length > 0) damageCard(oLane.children[0], pCard.cardData.atk);
+                    else state.opp.hp -= pCard.cardData.atk;
                     
-                    exhaustCard(pCard); // Exhaust after attacking
-                    updateUI();
-                    pCard.classList.remove('anim-attack-up');
-                    await sleep(200);
+                    exhaustCard(pCard); updateUI();
+                    pCard.classList.remove('anim-attack-up'); await sleep(200);
                 }
             }
 
-            // 2. Opponent Attacks
+            // 2. Opponent Attacks (Top attacks Bottom visually)
             for(let i=0; i<4; i++) {
                 let pLane = document.querySelector(`.player-lane[data-index="${i}"]`);
                 let oLane = document.querySelector(`.opp-lane[data-index="${i}"]`);
@@ -509,111 +448,51 @@
                 if(oLane.children.length > 0) {
                     let oCard = oLane.children[0];
                     if(oCard.isExhausted) continue;
-
-                    oCard.classList.add('anim-attack-down');
-                    await sleep(300);
+                    oCard.classList.add('anim-attack-down'); await sleep(300);
                     
-                    let atk = oCard.cardData.atk;
-                    if(pLane.children.length > 0) damageCard(pLane.children[0], atk);
-                    else state.player.hp -= atk;
+                    if(pLane.children.length > 0) damageCard(pLane.children[0], oCard.cardData.atk);
+                    else state.player.hp -= oCard.cardData.atk;
                     
-                    exhaustCard(oCard);
-                    updateUI();
-                    oCard.classList.remove('anim-attack-down');
-                    await sleep(200);
+                    exhaustCard(oCard); updateUI();
+                    oCard.classList.remove('anim-attack-down'); await sleep(200);
                 }
             }
 
-            if(!state.isGameOver) startOpponentTurn();
+            if(!state.isGameOver) {
+                if(isLocal) startOpponentTurn(); // My turn ended, now it's theirs
+                else startPlayerTurn(); // Their turn ended, now it's mine
+            }
         }
 
         function damageCard(cardEl, amount) {
-            cardEl.classList.add('anim-damage');
-            setTimeout(() => cardEl.classList.remove('anim-damage'), 500);
-            
-            cardEl.cardData.hp -= amount;
-            cardEl.querySelector('.hp-val').innerText = cardEl.cardData.hp;
-            
-            if(cardEl.cardData.hp <= 0) {
-                setTimeout(() => cardEl.remove(), 400);
-            }
-        }
-
-        // --- OPPONENT AI ---
-        async function startOpponentTurn() {
-            state.turn = 'opp';
-            DOM.turnInd.innerText = "Opponent Turn...";
-            
-            // Refresh opponent cards
-            refreshCards('opp-lane');
-
-            // Opponent Mana capped at 10
-            if(state.opp.maxMana < 10) state.opp.maxMana++;
-            state.opp.mana = state.opp.maxMana;
-            drawCard('opp');
-            updateUI();
-
-            const sleep = ms => new Promise(r => setTimeout(r, ms));
-            await sleep(1000);
-
-            // AI Phase 1: Use Abilities
-            let oppBoardCards = document.querySelectorAll('.opp-lane .card');
-            for(let cardEl of oppBoardCards) {
-                if(cardEl.cardData.ability && !cardEl.isExhausted) {
-                    // 50% chance to use ability instead of attacking
-                    if(Math.random() > 0.5) {
-                        executeAbility(cardEl.cardData.ability, 'opp');
-                        exhaustCard(cardEl);
-                        updateUI();
-                        await sleep(500);
-                    }
-                }
-            }
-
-            // AI Phase 2: Play Cards
-            let emptyLanes = Array.from(document.querySelectorAll('.opp-lane')).filter(l => l.children.length === 0);
-            state.opp.hand.sort((a,b) => b.cost - a.cost);
-
-            for (let i = state.opp.hand.length - 1; i >= 0; i--) {
-                let card = state.opp.hand[i];
-                if (card.cost <= state.opp.mana && emptyLanes.length > 0) {
-                    state.opp.mana -= card.cost;
-                    let targetLane = emptyLanes[Math.floor(Math.random() * emptyLanes.length)];
-                    
-                    let cardEl = createCardDOM(card, false);
-                    targetLane.appendChild(cardEl);
-                    exhaustCard(cardEl); // Summoning sickness
-                    
-                    state.opp.hand.splice(i, 1);
-                    emptyLanes = emptyLanes.filter(l => l !== targetLane);
-                    
-                    updateUI();
-                    await sleep(600);
-                }
-            }
-
-            if(!state.isGameOver) startPlayerTurn();
+            cardEl.classList.add('anim-damage'); setTimeout(() => cardEl.classList.remove('anim-damage'), 500);
+            cardEl.cardData.hp -= amount; cardEl.querySelector('.hp-val').innerText = cardEl.cardData.hp;
+            if(cardEl.cardData.hp <= 0) setTimeout(() => cardEl.remove(), 400);
         }
 
         function startPlayerTurn() {
-            // Player Mana capped at 10
             if(state.player.maxMana < 10) state.player.maxMana++;
             state.player.mana = state.player.maxMana;
-            drawCard('player');
-            refreshCards('player-lane');
-            
+            drawCard('player'); refreshCards('player-lane');
             state.turn = 'player';
-            DOM.turnInd.innerText = "Your Turn";
+            DOM.turnInd.innerText = "Your Turn"; DOM.turnInd.style.color = "var(--success)";
             DOM.endBtn.disabled = false;
+            updateUI();
+        }
+
+        function startOpponentTurn() {
+            if(state.opp.maxMana < 10) state.opp.maxMana++;
+            state.opp.mana = state.opp.maxMana;
+            drawCard('opp'); refreshCards('opp-lane');
+            state.turn = 'opp';
+            DOM.turnInd.innerText = "Opponent's Turn..."; DOM.turnInd.style.color = "var(--danger)";
             updateUI();
         }
 
         function endGame(msg) {
             state.isGameOver = true;
-            DOM.gameOverText.innerText = msg;
-            DOM.gameOver.style.display = 'flex';
+            DOM.gameOverText.innerText = msg; DOM.gameOver.style.display = 'flex';
         }
-
     </script>
 </body>
 </html>
